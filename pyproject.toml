@@ -1,0 +1,19 @@
+[tool.poetry]
+name = "screencast-refiner"
+version = "0.1.0"
+description = ""
+authors = ["Bishwaraj <deybishwaraj013@gmail.com>"]
+readme = "README.md"
+package-mode = false
+
+[tool.poetry.dependencies]
+python = "^3.13"
+tinydb = "^4.8.2"
+uuid = "^1.30"
+pytz = "^2024.2"
+python-dotenv = "^1.0.1"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
