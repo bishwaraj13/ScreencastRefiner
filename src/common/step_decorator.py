@@ -6,6 +6,7 @@ from functools import wraps
 from .static import requirements_dict
 from dotenv import load_dotenv
 import uuid
+import traceback
 
 
 @contextmanager
@@ -16,6 +17,13 @@ def timing_context(step_name, video_id, db):
     print(f"Start time: {start_time.strftime('%Y-%m-%d %H:%M:%S.%f %Z')}")
     try:
         yield
+        db.update_ingested_video(video_id, step_name, completed=True)
+    except Exception as e:
+        error_message = str(e)
+        stack_trace = traceback.format_exc()
+        db.update_ingested_video(
+            video_id, step_name, completed=False, error=f"{error_message}\n{stack_trace}")
+        raise
     finally:
         end_time = datetime.now(ist_timezone)
         duration = end_time - start_time

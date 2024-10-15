@@ -1,5 +1,7 @@
 import uuid
 from tinydb import TinyDB, Query
+from datetime import datetime
+import pytz
 
 
 class VideoDatabase:
@@ -71,3 +73,33 @@ class VideoDatabase:
         self.transcriptions.remove(Video.video_id == video_id)
         self.raw_scripts.remove(Video.video_id == video_id)
         self.corrected_scripts.remove(Video.video_id == video_id)
+
+    def _get_current_time(self):
+        ist_timezone = pytz.timezone("Asia/Kolkata")
+        return datetime.now(ist_timezone).strftime('%Y-%m-%d %H:%M:%S.%f %Z')
+
+    def update_ingested_video(self, video_id, step_name, completed=True, error=None):
+        Video = Query()
+        video = self.ingested_videos.get(Video.video_id == video_id)
+
+        if video:
+            steps_completed = video.get('steps_completed', {})
+            steps_completed[f"{step_name}_completed"] = completed
+
+            execution_time = video.get('execution_time', {})
+            execution_time[step_name] = self._get_current_time()
+
+            update_data = {
+                'steps_completed': steps_completed,
+                'execution_time': execution_time
+            }
+
+            if error:
+                errors = video.get('errors', {})
+                errors[step_name] = error
+                update_data['errors'] = errors
+
+            self.ingested_videos.update(
+                update_data, Video.video_id == video_id)
+        else:
+            print(f"Video with id {video_id} not found.")
