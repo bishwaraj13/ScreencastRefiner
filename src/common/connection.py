@@ -9,8 +9,10 @@ class VideoDatabase:
         self.db = TinyDB(db_path)
         self.ingested_videos = self.db.table('ingested_videos')
         self.transcriptions = self.db.table('transcriptions')
-        self.raw_scripts = self.db.table('raw_scripts')
-        self.corrected_scripts = self.db.table('corrected_scripts')
+        self.scenes = self.db.table('scenes')
+
+    def get_db(self):
+        return self.db
 
     def add_ingested_video(self, video_file):
         video_id = str(uuid.uuid4())
@@ -18,28 +20,28 @@ class VideoDatabase:
             {'video_id': video_id, 'video_file': video_file})
         return video_id
 
-    def add_transcription(self, video_id, time_start, time_end, segment):
+    def add_transcription(self, video_id, transcript_dict):
         self.transcriptions.insert({
             'video_id': video_id,
-            'time_start': time_start,
-            'time_end': time_end,
-            'segment': segment
+            'transcript_dict': transcript_dict
         })
 
-    def add_raw_script(self, video_id, time_start, time_end, clip_file_path):
-        self.raw_scripts.insert({
+    def add_scene(self,
+                  video_id,
+                  step_number,
+                  title,
+                  time_start,
+                  time_end,
+                  original_narration,
+                  polished_narration):
+        return self.scenes.insert({
             'video_id': video_id,
+            'step_number': step_number,
+            'title': title,
             'time_start': time_start,
             'time_end': time_end,
-            'clip_file_path': clip_file_path
-        })
-
-    def add_corrected_script(self, video_id, time_start, time_end, clip_file_path):
-        self.corrected_scripts.insert({
-            'video_id': video_id,
-            'time_start': time_start,
-            'time_end': time_end,
-            'clip_file_path': clip_file_path
+            'original_narration': original_narration,
+            'polished_narration': polished_narration
         })
 
     def get_ingested_video(self, video_id):
@@ -103,3 +105,65 @@ class VideoDatabase:
                 update_data, Video.video_id == video_id)
         else:
             print(f"Video with id {video_id} not found.")
+
+    def get_record(self, collection_name, query_field, query_value):
+        collection = self.db.table(collection_name)
+        Record = Query()
+        return collection.get(getattr(Record, query_field) == query_value)
+    
+    def get_records(self, collection_name, query_field, query_value):
+        """
+        Get all records from a collection that match the given query.
+
+        :param collection_name: Name of the collection to query
+        :param query_field: Field to query for finding the records
+        :param query_value: Value to match in the query field
+        :return: List of matching records
+        """
+        collection = self.db.table(collection_name)
+        Record = Query()
+        return collection.search(getattr(Record, query_field) == query_value)
+
+    def get_specific_values(self, collection_name, query_field, query_value, *fields):
+        record = self.get_record(collection_name, query_field, query_value)
+        if record:
+            return {field: record.get(field) for field in fields if field in record}
+        return None
+
+    def update_record(self, table_name: str, query_field: str, query_value: str, update_field: str, update_value: any):
+        """
+        Update a specific field in a record of any table.
+
+        :param table_name: Name of the table to update
+        :param query_field: Field to query for finding the record
+        :param query_value: Value to match in the query field
+        :param update_field: Field to update
+        :param update_value: New value for the update field
+        """
+        table = self.db.table(table_name)
+        Record = Query()
+        table.update({update_field: update_value}, getattr(
+            Record, query_field) == query_value)
+        
+    def update_record(self, table_name: str, query_criteria: dict, update_field: str, update_value: any):
+        """
+        Update a specific field in a record of any table based on multiple criteria.
+
+        :param table_name: Name of the table to update
+        :param query_criteria: Dictionary of field-value pairs to use as query criteria
+        :param update_field: Field to update
+        :param update_value: New value for the update field
+        """
+        table = self.db.table(table_name)
+        Record = Query()
+        
+        # Build the query condition
+        condition = None
+        for field, value in query_criteria.items():
+            if condition is None:
+                condition = (getattr(Record, field) == value)
+            else:
+                condition &= (getattr(Record, field) == value)
+        
+        # Update the record
+        table.update({update_field: update_value}, condition)

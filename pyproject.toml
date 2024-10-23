@@ -7,11 +7,15 @@ readme = "README.md"
 package-mode = false
 
 [tool.poetry.dependencies]
-python = "^3.13"
+python = "^3.12"
 tinydb = "^4.8.2"
 uuid = "^1.30"
 pytz = "^2024.2"
 python-dotenv = "^1.0.1"
+moviepy = "^1.0.3"
+rev-ai = "^2.19.5"
+google-generativeai = "^0.8.3"
+openai = "^1.52.0"
 
 
 [build-system]
